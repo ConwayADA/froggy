@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HAVENFROGGY | Frog Hopper Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0a0b0f;
+      --bg2:#0e0f16;
+      --panel:#12131b;
+      --text:#f2f4ff;
+      --muted:#b7b9c9;
+      --accent:#ff6a00;
+      --accent-2:#ff9a3c;
+      --accent-dark:#b34900;
+      --green:#4cff7a;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      color:var(--text);
+      background:
+        radial-gradient(1400px 800px at 80% -10%, #1b0f00 5%, transparent 60%),
+        radial-gradient(1200px 600px at 0% 0%, #141216 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      font-family:"Silkscreen", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      image-rendering:pixelated;
+    }
+    /* CRT scanlines */
+    body:before{
+      content:"";
+      position:fixed;inset:0;pointer-events:none;opacity:.07;mix-blend-mode:overlay;
+      background:repeating-linear-gradient( to bottom, #000 0px, #000 1px, transparent 2px, transparent 3px);
+    }
+
+    a{color:inherit;text-decoration:none}
+
+    .wrap{max-width:1180px;margin:0 auto;padding:24px}
+
+    /* NAV */
+    .nav{
+      display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;z-index:10;background:linear-gradient(180deg, rgba(10,11,15,.85), rgba(10,11,15,.25));
+      backdrop-filter: blur(6px);
+      padding:16px 24px;margin:-16px -24px 0;
+      border-bottom:4px solid var(--accent-dark);
+      box-shadow:0 6px 0 #000 inset;
+    }
+    .brand{display:flex;align-items:center;gap:12px;font-family:"Press Start 2P";letter-spacing:2px}
+    .frog{
+      width:28px;height:28px;display:inline-block
+    }
+    .brand b{color:var(--accent)}
+    .menu{display:flex;gap:22px;flex-wrap:wrap}
+    .menu a{opacity:.9}
+    .menu a.active{color:var(--accent)}
+    .login{margin-left:10px}
+
+    /* Pixel button */
+    .px-btn{
+      --c:var(--accent);
+      background:var(--c);color:#111;font-weight:700;
+      padding:12px 18px;border:none;cursor:pointer;text-transform:uppercase;letter-spacing:1px;
+      clip-path:polygon(0 8px,8px 8px,8px 0,calc(100% - 8px) 0,calc(100% - 8px) 8px,100% 8px,100% calc(100% - 8px),calc(100% - 8px) calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 8px),0 calc(100% - 8px));
+      box-shadow:0 6px 0 var(--accent-dark),0 0 18px rgba(255,106,0,.35);
+      transition:transform .06s ease-in-out, box-shadow .06s ease-in-out;
+      font-family:"Press Start 2P";
+    }
+    .px-btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 var(--accent-dark),0 0 24px rgba(255,106,0,.5)}
+    .px-btn.secondary{--c:#222;color:var(--text);outline:2px solid var(--accent)}
+
+    /* Game Container */
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 40px 0;
+    }
+
+    .game-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .game-header h1 {
+      font-family: "Press Start 2P";
+      font-size: 24px;
+      margin-bottom: 10px;
+      color: var(--accent);
+    }
+
+    .game-stats {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin: 20px 0;
+    }
+
+    .stat-box {
+      background: linear-gradient(180deg, #0f1118, #0a0b11);
+      padding: 15px 20px;
+      border: 4px solid #000;
+      outline: 3px solid var(--accent-dark);
+      clip-path: polygon(0 12px,12px 12px,12px 0,calc(100% - 12px) 0,calc(100% - 12px) 12px,100% 12px,100% calc(100% - 12px),calc(100% - 12px) calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,12px calc(100% - 12px),0 calc(100% - 12px));
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: "Press Start 2P";
+      font-size: 18px;
+      color: var(--green);
+      margin: 5px 0;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    /* Game Canvas */
+    .game-canvas-container {
+      position: relative;
+      margin: 20px 0;
+      width: 800px;
+      height: 500px;
+      max-width: 100%;
+      background: #0b0d13;
+      border: 4px solid #000;
+      outline: 3px solid var(--accent-dark);
+      clip-path: polygon(0 12px,12px 12px,12px 0,calc(100% - 12px) 0,calc(100% - 12px) 12px,100% 12px,100% calc(100% - 12px),calc(100% - 12px) calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,12px calc(100% - 12px),0 calc(100% - 12px));
+      overflow: hidden;
+    }
+
+    .game-canvas {
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(90deg, transparent 49%, rgba(255,106,0,.1) 50%, transparent 51%),
+        linear-gradient(0deg, transparent 49%, rgba(255,106,0,.1) 50%, transparent 51%),
+        #0b0d13;
+      background-size: 20px 20px;
+    }
+
+    /* Game Controls */
+    .game-controls {
+      display: flex;
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    /* Instructions */
+    .instructions {
+      background: linear-gradient(180deg, #0f1118, #0a0b11);
+      padding: 20px;
+      border: 4px solid #000;
+      outline: 3px solid var(--accent-dark);
+      clip-path: polygon(0 12px,12px 12px,12px 0,calc(100% - 12px) 0,calc(100% - 12px) 12px,100% 12px,100% calc(100% - 12px),calc(100% - 12px) calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,12px calc(100% - 12px),0 calc(100% - 12px));
+      margin-top: 30px;
+      max-width: 800px;
+    }
+
+    .instructions h2 {
+      font-family: "Press Start 2P";
+      font-size: 16px;
+      margin-top: 0;
+      color: var(--accent);
+    }
+
+    .instructions ul {
+      padding-left: 20px;
+    }
+
+    .instructions li {
+      margin: 10px 0;
+      font-size: 12px;
+    }
+
+    /* Responsive */
+    @media (max-width: 980px){
+      .game-canvas-container {
+        width: 100%;
+        height: 400px;
+      }
+    }
+    @media (max-width: 620px){
+      .game-stats {
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+      }
+      
+      .game-controls {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- NAVBAR -->
+    <nav class="nav">
+      <div class="brand">
+        <svg class="frog" viewBox="0 0 16 16" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+          <rect width="16" height="16" fill="#0b0e12"/>
+          <rect x="3" y="3" width="10" height="6" fill="#0b3c22"/>
+          <rect x="4" y="4" width="8" height="4" fill="#4cff7a"/>
+          <rect x="6" y="9" width="4" height="2" fill="#a6ffbf"/>
+          <rect x="2" y="12" width="12" height="2" fill="#181818"/>
+        </svg>
+        <span>HAVEN<b>FROGGY</b></span>
+      </div>
+      <div class="menu">
+        <a href="index.html">Home</a>
+        <a href="index.html#about">About</a>
+        <a href="index.html#art">Artwork</a>
+        <a href="index.html#collection">Collection</a>
+        <a href="index.html#artist">Artist</a>
+        <button class="px-btn">HOP</button>
+      </div>
+      <button class="px-btn login">Login</button>
+    </nav>
+
+    <!-- GAME CONTENT -->
+    <div class="game-container">
+      <div class="game-header">
+        <h1>FROG HOPPER</h1>
+        <p>Help the frog navigate through obstacles!</p>
+      </div>
+
+      <div class="game-stats">
+        <div class="stat-box">
+          <div class="stat-label">SCORE</div>
+          <div class="stat-value" id="score">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">HIGH SCORE</div>
+          <div class="stat-value" id="high-score">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">LIVES</div>
+          <div class="stat-value" id="lives">3</div>
+        </div>
+      </div>
+
+      <div class="game-canvas-container">
+        <canvas class="game-canvas" id="gameCanvas"></canvas>
+      </div>
+
+      <div class="game-controls">
+        <button class="px-btn" id="startBtn">START GAME</button>
+        <button class="px-btn secondary" id="resetBtn">RESET</button>
+      </div>
+
+      <div class="instructions">
+        <h2>HOW TO PLAY</h2>
+        <ul>
+          <li>Press SPACEBAR or CLICK to make the frog jump</li>
+          <li>Avoid obstacles and try to get the highest score</li>
+          <li>Each successful hop increases your score</li>
+          <li>You have 3 lives - don't hit the obstacles!</li>
+        </ul>
+      </div>
+    </div>
+
+    <footer style="text-align: center; margin-top: 40px; color: var(--muted); font-size: 11px;">
+      © <span id="year"></span> HAVENFROGGY • Frog Hopper Game
+    </footer>
+  </div>
+
+  <script>
+    // Set the year in the footer
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Game variables
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const highScoreElement = document.getElementById('high-score');
+    const livesElement = document.getElementById('lives');
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    // Set canvas dimensions
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
+    // Game state
+    let score = 0;
+    let highScore = localStorage.getItem('frogHopperHighScore') || 0;
+    let lives = 3;
+    let gameRunning = false;
+    let gameSpeed = 5;
+    
+    // Frog properties
+    const frog = {
+      x: 100,
+      y: canvas.height - 70 - 30, // Ground level minus frog height
+      width: 40,
+      height: 30,
+      jumping: false,
+      jumpVelocity: 0,
+      gravity: 0.8,
+      jumpPower: -15
+    };
+    
+    // Obstacles array
+    let obstacles = [];
+    
+    // Initialize high score display
+    highScoreElement.textContent = highScore;
+    
+    // Draw frog
+    function drawFrog() {
+      // Frog body
+      ctx.fillStyle = '#4cff7a';
+      ctx.fillRect(frog.x, frog.y, frog.width, frog.height);
+      
+      // Frog eyes
+      ctx.fillStyle = '#0b3c22';
+      ctx.fillRect(frog.x + 30, frog.y + 5, 8, 8);
+      ctx.fillRect(frog.x + 30, frog.y + 17, 8, 8);
+      
+      // Frog legs
+      ctx.fillStyle = '#a6ffbf';
+      ctx.fillRect(frog.x - 5, frog.y + 5, 10, 5);
+      ctx.fillRect(frog.x - 5, frog.y + 20, 10, 5);
+    }
+    
+    // Draw obstacles
+    function drawObstacles() {
+      obstacles.forEach(obstacle => {
+        ctx.fillStyle = '#ff6a00';
+        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+        
+        // Add some details to obstacles
+        ctx.fillStyle = '#b34900';
+        ctx.fillRect(obstacle.x + 5, obstacle.y + 5, obstacle.width - 10, obstacle.height - 10);
+      });
+    }
+    
+    // Update frog position
+    function updateFrog() {
+      if (frog.jumping) {
+        frog.y += frog.jumpVelocity;
+        frog.jumpVelocity += frog.gravity;
+        
+        // Check if frog landed on the ground
+        const groundLevel = canvas.height - 70 - frog.height;
+        if (frog.y >= groundLevel) {
+          frog.y = groundLevel;
+          frog.jumping = false;
+          frog.jumpVelocity = 0;
+        }
+      }
+    }
+    
+    // Update obstacles
+    function updateObstacles() {
+      // Move obstacles
+      obstacles.forEach(obstacle => {
+        obstacle.x -= gameSpeed;
+      });
+      
+      // Remove obstacles that are off screen
+      obstacles = obstacles.filter(obstacle => obstacle.x + obstacle.width > 0);
+      
+      // Add new obstacles randomly
+      if (Math.random() < 0.02 && gameRunning) {
+        const height = 30 + Math.random() * 50;
+        obstacles.push({
+          x: canvas.width,
+          y: canvas.height - 70 - height,
+          width: 30,
+          height: height
+        });
+      }
+    }
+    
+    // Check collisions
+    function checkCollisions() {
+      obstacles.forEach(obstacle => {
+        // Simple collision detection
+        if (
+          frog.x < obstacle.x + obstacle.width &&
+          frog.x + frog.width > obstacle.x &&
+          frog.y < obstacle.y + obstacle.height &&
+          frog.y + frog.height > obstacle.y
+        ) {
+          // Collision detected
+          lives--;
+          livesElement.textContent = lives;
+          
+          // Remove the obstacle
+          obstacles = obstacles.filter(obs => obs !== obstacle);
+          
+          // Reset game if no lives left
+          if (lives <= 0) {
+            endGame();
+          }
+        }
+      });
+    }
+    
+    // Update score
+    function updateScore() {
+      if (gameRunning) {
+        score++;
+        scoreElement.textContent = score;
+        
+        // Increase game speed gradually
+        if (score % 100 === 0) {
+          gameSpeed += 0.5;
+        }
+      }
+    }
+    
+    // Draw ground
+    function drawGround() {
+      ctx.fillStyle = '#0b3c22';
+      ctx.fillRect(0, canvas.height - 70, canvas.width, 70);
+      
+      // Add some grass details
+      ctx.fillStyle = '#4cff7a';
+      for (let i = 0; i < canvas.width; i += 20) {
+        ctx.fillRect(i, canvas.height - 70, 10, -15);
+      }
+    }
+    
+    // Draw game
+    function draw() {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw ground
+      drawGround();
+      
+      // Draw frog
+      drawFrog();
+      
+      // Draw obstacles
+      drawObstacles();
+    }
+    
+    // Game loop
+    function gameLoop() {
+      if (gameRunning) {
+        updateFrog();
+        updateObstacles();
+        checkCollisions();
+        updateScore();
+        draw();
+        requestAnimationFrame(gameLoop);
+      }
+    }
+    
+    // Make frog jump
+    function jump() {
+      if (!frog.jumping && gameRunning) {
+        frog.jumping = true;
+        frog.jumpVelocity = frog.jumpPower;
+      }
+    }
+    
+    // Start game
+    function startGame() {
+      if (!gameRunning) {
+        gameRunning = true;
+        startBtn.textContent = "PAUSE";
+        gameLoop();
+      } else {
+        gameRunning = false;
+        startBtn.textContent = "RESUME";
+      }
+    }
+    
+    // Reset game
+    function resetGame() {
+      gameRunning = false;
+      score = 0;
+      lives = 3;
+      gameSpeed = 5;
+      frog.y = canvas.height - 70 - frog.height;
+      frog.jumping = false;
+      obstacles = [];
+      
+      scoreElement.textContent = score;
+      livesElement.textContent = lives;
+      startBtn.textContent = "START GAME";
+      
+      draw();
+    }
+    
+    // End game
+    function endGame() {
+      gameRunning = false;
+      
+      // Update high score
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('frogHopperHighScore', highScore);
+        highScoreElement.textContent = highScore;
+      }
+      
+      startBtn.textContent = "START GAME";
+      alert(`Game Over! Your score: ${score}`);
+    }
+    
+    // Event listeners
+    startBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+    
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault(); // Prevent spacebar from scrolling the page
+        jump();
+      }
+    });
+    
+    canvas.addEventListener('click', jump);
+    
+    // Initialize game
+    draw();
+  </script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HAVENFROGGY | Pixel NFTs & MEMECOIN</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0a0b0f;
+      --bg2:#0e0f16;
+      --panel:#12131b;
+      --text:#f2f4ff;
+      --muted:#b7b9c9;
+      --accent:#ff6a00;
+      --accent-2:#ff9a3c;
+      --accent-dark:#b34900;
+      --green:#4cff7a;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      color:var(--text);
+      background:
+        radial-gradient(1400px 800px at 80% -10%, #1b0f00 5%, transparent 60%),
+        radial-gradient(1200px 600px at 0% 0%, #141216 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      font-family:"Silkscreen", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      image-rendering:pixelated;
+    }
+    /* CRT scanlines */
+    body:before{
+      content:"";
+      position:fixed;inset:0;pointer-events:none;opacity:.07;mix-blend-mode:overlay;
+      background:repeating-linear-gradient( to bottom, #000 0px, #000 1px, transparent 2px, transparent 3px);
+    }
+
+    a{color:inherit;text-decoration:none}
+
+    .wrap{max-width:1180px;margin:0 auto;padding:24px}
+
+    /* NAV */
+    .nav{
+      display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;z-index:10;background:linear-gradient(180deg, rgba(10,11,15,.85), rgba(10,11,15,.25));
+      backdrop-filter: blur(6px);
+      padding:16px 24px;margin:-16px -24px 0;
+      border-bottom:4px solid var(--accent-dark);
+      box-shadow:0 6px 0 #000 inset;
+    }
+    .brand{display:flex;align-items:center;gap:12px;font-family:"Press Start 2P";letter-spacing:2px}
+    .frog{
+      width:28px;height:28px;display:inline-block
+    }
+    .brand b{color:var(--accent)}
+    .menu{display:flex;gap:22px;flex-wrap:wrap}
+    .menu a{opacity:.9}
+    .menu a.active{color:var(--accent)}
+    .login{margin-left:10px}
+
+    /* Pixel button */
+    .px-btn{
+      --c:var(--accent);
+      background:var(--c);color:#111;font-weight:700;
+      padding:12px 18px;border:none;cursor:pointer;text-transform:uppercase;letter-spacing:1px;
+      clip-path:polygon(0 8px,8px 8px,8px 0,calc(100% - 8px) 0,calc(100% - 8px) 8px,100% 8px,100% calc(100% - 8px),calc(100% - 8px) calc(100% - 8px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 8px),0 calc(100% - 8px));
+      box-shadow:0 6px 0 var(--accent-dark),0 0 18px rgba(255,106,0,.35);
+      transition:transform .06s ease-in-out, box-shadow .06s ease-in-out;
+      font-family:"Press Start 2P";
+    }
+    .px-btn:hover{transform:translateY(-2px);box-shadow:0 8px 0 var(--accent-dark),0 0 24px rgba(255,106,0,.5)}
+    .px-btn.secondary{--c:#222;color:var(--text);outline:2px solid var(--accent)}
+
+    /* HERO */
+    .hero{padding:60px 0 30px; position:relative}
+    .grid-hero{display:grid;gap:28px;grid-template-columns:1.2fr .8fr}
+    .headline{
+      font-family:"Press Start 2P";font-size:clamp(18px,2.2vw,28px);line-height:1.6;letter-spacing:1px;
+      text-shadow:0 0 8px rgba(255,106,0,.3),0 3px 0 #000;
+    }
+    .hl-accent{color:var(--accent);position:relative}
+    .hl-accent:after{
+      content:"";position:absolute;left:2px;right:2px;bottom:-6px;height:8px;background:repeating-linear-gradient(90deg, var(--accent) 0 6px, var(--accent-2) 6px 12px);
+      filter:contrast(120%);box-shadow:0 0 10px rgba(255,106,0,.6);
+    }
+    .hero-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:18px}
+
+    /* CARD STRIP */
+    .card-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:18px}
+    .px-card{
+      background:linear-gradient(180deg, #11131a, #0c0d13);
+      border:4px solid #000; outline:3px solid var(--accent-dark);
+      padding:10px; position:relative; box-shadow:0 0 24px rgba(255,106,0,.07), 0 10px 0 #000 inset;
+      clip-path:polygon(0 12px,12px 12px,12px 0,calc(100% - 12px) 0,calc(100% - 12px) 12px,100% 12px,100% calc(100% - 12px),calc(100% - 12px) calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,12px calc(100% - 12px),0 calc(100% - 12px));
+    }
+    .px-card h4{margin:10px 8px 0;font-size:12px;color:var(--muted);font-weight:400}
+    .px-card .owner{position:absolute;top:8px;right:10px;font-size:10px;color:var(--muted)}
+    .art{
+      aspect-ratio:1/1;display:block;width:100%;
+      background:#0c0f14 center/cover no-repeat;
+      image-rendering:pixelated; border:3px solid var(--accent-dark);
+      box-shadow:0 0 0 6px #000 inset, 0 0 35px rgba(255,106,0,.12);
+    }
+    
+    .art-placeholder{
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges"><rect width="16" height="16" fill="%23090d10"/><rect x="5" y="1" width="6" height="2" fill="%234cff7a"/><rect x="3" y="3" width="10" height="8" fill="%230b3c22"/><rect x="6" y="6" width="4" height="3" fill="%234cff7a"/><rect x="4" y="5" width="2" height="2" fill="%23a6ffbf"/><rect x="1" y="12" width="14" height="3" fill="%23110f10"/></svg>');
+    }
+
+    /* TRUST BAR */
+    .trust{opacity:.85;display:flex;gap:26px;flex-wrap:wrap;align-items:center;justify-content:center;margin:28px 0}
+    .trust span{font-size:10px;color:var(--muted);opacity:.9;border:1px solid #1c1e29;padding:6px 10px;clip-path:polygon(0 6px,6px 6px,6px 0,calc(100% - 6px) 0,calc(100% - 6px) 6px,100% 6px,100% calc(100% - 6px),calc(100% - 6px) calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,6px calc(100% - 6px),0 calc(100% - 6px))}
+
+    /* AUCTION */
+    .auction{display:grid;grid-template-columns:1.1fr .9fr;gap:26px;align-items:stretch;margin-top:36px}
+    .auction .art{aspect-ratio:4/3}
+    .panel{
+      background:linear-gradient(180deg, #0f1118, #0a0b11); padding:20px; border:4px solid #000; outline:3px solid var(--accent-dark);
+      clip-path:polygon(0 12px,12px 12px,12px 0,calc(100% - 12px) 0,calc(100% - 12px) 12px,100% 12px,100% calc(100% - 12px),calc(100% - 12px) calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,12px calc(100% - 12px),0 calc(100% - 12px));
+      position:relative
+    }
+    .panel h3{margin:0 0 8px;font-size:14px;color:var(--accent)}
+    .desc{font-size:12px;color:var(--muted);line-height:1.6}
+    .kv{display:flex; gap:16px; margin:16px 0; align-items:center}
+    .kv .box{background:#0b0d13;padding:10px 12px;border:1px solid #1c1f2c;min-width:120px;text-align:center}
+    .kv .big{font-family:"Press Start 2P";font-size:14px}
+    .count{font-family:"Press Start 2P";font-size:16px}
+
+    /* COLLECTIONS */
+    .section-title{font-family:"Press Start 2P";font-size:18px;text-align:center;margin:40px 0 14px}
+    .filters{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+    .chip{font-size:10px;background:#151826;border:1px solid #23283a;padding:10px 12px;cursor:pointer}
+    .chip.active{outline:2px solid var(--accent);background:#1b1f33}
+
+    .grid{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:20px
+    }
+
+    /* FOOTER */
+    footer{margin:44px 0 20px;text-align:center;color:var(--muted);font-size:11px}
+
+    /* Responsive */
+    @media (max-width: 980px){
+      .grid-hero{grid-template-columns:1fr}
+      .auction{grid-template-columns:1fr}
+      .grid{grid-template-columns:repeat(2,1fr)}
+      .card-strip{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width: 620px){
+      .grid{grid-template-columns:1fr}
+      .card-strip{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- NAVBAR -->
+    <nav class="nav">
+      <div class="brand">
+        <svg class="frog" viewBox="0 0 16 16" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">
+          <rect width="16" height="16" fill="#0b0e12"/>
+          <rect x="3" y="3" width="10" height="6" fill="#0b3c22"/>
+          <rect x="4" y="4" width="8" height="4" fill="#4cff7a"/>
+          <rect x="6" y="9" width="4" height="2" fill="#a6ffbf"/>
+          <rect x="2" y="12" width="12" height="2" fill="#181818"/>
+        </svg>
+        <span>HAVEN<b>FROGGY</b></span>
+      </div>
+      <div class="menu">
+        <a class="active" href="#">Home</a>
+        <a href="#about">About</a>
+        <a href="#art">Artwork</a>
+        <a href="#collection">Collection</a>
+        <a href="#artist">Artist</a>
+        <a href="frog-game.html" class="px-btn">HOP</a>
+        <a href="haven.html" class="px-btn">Haven</a>
+      </div>
+      <button class="px-btn login">Login</button>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="grid-hero">
+        <div>
+          <h1 class="headline">DISCOVER, COLLECT, and SELL <span class="hl-accent">DIGITAL ART</span> NFTs & MEMECOINS on <span class="hl-accent">HAVENFROGGY</span></h1>
+          <div class="hero-actions">
+            <button class="px-btn">Explore Now</button>
+            <button class="px-btn secondary">Mint a Frog</button>
+          </div>
+          <div class="trust" aria-label="exchanges">
+            <!-- Exchanges removed for Cardano project -->
+          </div>
+        </div>
+        <div class="card-strip">
+          <article class="px-card"><span class="owner">#001</span><div class="art art-placeholder" data-src="images/frog1.png" aria-label="pixel frog"></div><h4>Froggy • Stealth Ops</h4></article>
+          <article class="px-card"><span class="owner">#002</span><div class="art art-placeholder" data-src="images/frog2.png" aria-label="pixel frog"></div><h4>Froggy • Monsoon Hoodie</h4></article>
+          <article class="px-card"><span class="owner">#003</span><div class="art art-placeholder" data-src="images/frog3.png" aria-label="pixel frog"></div><h4>Froggy • Neon Visor</h4></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUCTION HOT -->
+    <section class="auction" id="art">
+      <div class="px-card"><div class="art art-placeholder" data-src="images/auction-art.png" aria-label="auction art"></div></div>
+      <div class="panel">
+        <h3>HOT TRENDING • THIS WEEK</h3>
+        <p class="desc">We are a community-based collection featuring 8‑bit amphibians from rainy blockchains. Breed rare traits, collect seasonal drops and unlock memecoin utility across the HAVENFROGGY swamp.</p>
+        <div class="kv">
+          <div class="box"><div class="big" id="bid">1,250 ADA</div><div style="font-size:10px;color:var(--muted)">TRENDING THIS WEEK</div></div>
+          <div class="box"><div class="count" id="count">18:13:56</div><div style="font-size:10px;color:var(--muted)">AUCTION ENDS</div></div>
+        </div>
+        <button class="px-btn" style="width:160px">Place a Bid</button>
+      </div>
+    </section>
+
+    <!-- COLLECTIONS -->
+    <section id="collection">
+      <h2 class="section-title">EXPLORE OUR <span class="hl-accent" style="display:inline-block;transform:translateY(-2px)">COLLECTIONS</span></h2>
+      <div class="filters">
+        <button class="chip active" data-filter="all">Trending</button>
+      </div>
+      <div class="grid" id="grid">
+        <!-- 9 sample items -->
+        <article class="px-card" data-tags="trending animal">
+          <div class="art art-placeholder" data-src="images/collection1.png"></div>
+          <h4>Owned by @jenny</h4>
+        </article>
+        <article class="px-card" data-tags="trending hero">
+          <div class="art art-placeholder" data-src="images/collection2.png"></div>
+          <h4>Owned by @marc</h4>
+        </article>
+        <article class="px-card" data-tags="trending fancy">
+          <div class="art art-placeholder" data-src="images/collection3.png"></div>
+          <h4>Owned by @guy</h4>
+        </article>
+        <article class="px-card" data-tags="monster">
+          <div class="art art-placeholder" data-src="images/collection4.png"></div>
+          <h4>Owned by @lin</h4>
+        </article>
+        <article class="px-card" data-tags="animal women">
+          <div class="art art-placeholder" data-src="images/collection5.png"></div>
+          <h4>Owned by @aria</h4>
+        </article>
+        <article class="px-card" data-tags="hero man">
+          <div class="art art-placeholder" data-src="images/collection6.png"></div>
+          <h4>Owned by @nick</h4>
+        </article>
+        <article class="px-card" data-tags="fancy">
+          <div class="art art-placeholder" data-src="images/collection7.png"></div>
+          <h4>Owned by @sue</h4>
+        </article>
+        <article class="px-card" data-tags="women">
+          <div class="art art-placeholder" data-src="images/collection8.png"></div>
+          <h4>Owned by @mai</h4>
+        </article>
+        <article class="px-card" data-tags="man">
+          <div class="art art-placeholder" data-src="images/collection9.png"></div>
+          <h4>Owned by @rex</h4>
+        </article>
+      </div>
+    </section>
+
+    <footer>
+      © <span id="year"></span> HAVENFROGGY • Built with love, pixels, 
+    </footer>
+  </div>
+
+  <script>
+    // Simple auction countdown to 18 hours from now
+    const end = new Date(Date.now() + 18*60*60*1000);
+    const $count = document.getElementById('count');
+    const tick = ()=>{
+      const d = end - new Date();
+      const hh = String(Math.max(0, Math.floor(d/3.6e6))).padStart(2,'0');
+      const mm = String(Math.max(0, Math.floor(d%3.6e6/6e4))).padStart(2,'0');
+      const ss = String(Math.max(0, Math.floor(d%6e4/1e3))).padStart(2,'0');
+      $count.textContent = `${hh}:${mm}:${ss}`;
+      if(d<=0) clearInterval(t);
+    };
+    const t = setInterval(tick, 1000); tick();
+
+    // Filters
+    const chips=[...document.querySelectorAll('.chip')];
+    const cards=[...document.querySelectorAll('#grid .px-card')];
+    chips.forEach(c=>c.addEventListener('click',()=>{
+      chips.forEach(x=>x.classList.remove('active'));
+      c.classList.add('active');
+      const f=c.dataset.filter;
+      cards.forEach(card=>{
+        const tags=(card.dataset.tags||'').split(/\s+/);
+        const show=(f==='all'||f==='Trending'.toLowerCase()||tags.includes(f));
+        card.style.display=show?'block':'none';
+      });
+    }));
+
+    // Year
+    document.getElementById('year').textContent=new Date().getFullYear();
+
+    // Load images from data-src attributes
+    document.querySelectorAll('.art[data-src]').forEach(art => {
+      const img = new Image();
+      img.onload = function() {
+        art.style.backgroundImage = `url(${this.src})`;
+        art.classList.remove('art-placeholder');
+      };
+      img.onerror = function() {
+        // Keep the placeholder if the image fails to load
+        console.warn(`Failed to load image: ${art.dataset.src}`);
+      };
+      img.src = art.dataset.src;
+    });
+  </script>
+</body>
+</html>

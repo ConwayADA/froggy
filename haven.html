@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HAVEN — Frog-on-Lilypad Ant Simulator</title>
+<style>
+  :root{
+    --bg:#0b1727; /* deep water */
+    --panel:#0e2137;
+    --panel-2:#132b46;
+    --accent:#6ee7b7; /* mint */
+    --accent-2:#22d3ee; /* cyan */
+    --text:#cffafe;
+    --muted:#9bb4c7;
+    --danger:#ef4444;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;}
+  body{
+    margin:0; background:radial-gradient(1200px 800px at 20% 10%, #0f2742, var(--bg));
+    color:var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+    overflow:hidden;
+  }
+  #hud{
+    position:fixed; inset:16px auto auto 16px; z-index:20; display:flex; gap:12px; align-items:stretch;
+  }
+  .panel{
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border:1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
+    border-radius:16px; padding:12px 14px; backdrop-filter: blur(8px);
+  }
+  .brand{display:flex; gap:10px; align-items:center}
+  .brand .dot{width:12px;height:12px;border-radius:999px;background:conic-gradient(from 0deg, var(--accent), var(--accent-2)); box-shadow:0 0 14px var(--accent-2)}
+  .brand h1{font-size:14px; letter-spacing:.18em; text-transform:uppercase; margin:0; color:var(--text)}
+
+  #stats{display:grid; grid-template-columns: repeat(4, auto); gap:10px 16px; align-items:center;}
+  #stats .kv{opacity:.9; font-size:12px;}
+  #stats .kv b{font-weight:700; color:var(--accent)}
+
+  #controls{display:flex; gap:8px; align-items:center}
+  button, .seg, input[type=range]{
+    -webkit-appearance:none; appearance:none; border:none; outline:none;
+  }
+  button{
+    background:#132942; color:var(--text); border:1px solid rgba(255,255,255,.06);
+    padding:8px 12px; border-radius:12px; font-weight:600; font-size:12px;
+    box-shadow:0 2px 0 rgba(255,255,255,.04) inset, 0 8px 16px rgba(0,0,0,.25);
+    cursor:pointer; transition:transform .06s ease, filter .2s ease;
+  }
+  button:hover{filter:brightness(1.1)}
+  button:active{transform:translateY(1px)}
+  button.primary{ background:linear-gradient(180deg, #164b37, #0e3a2a); border-color:#1f7255 }
+  button.danger{ background:linear-gradient(180deg, #4b1616, #3a0e0e); border-color:#722121 }
+
+  .seg{display:flex; background:#0f2136; padding:4px; border-radius:12px; border:1px solid rgba(255,255,255,.06)}
+  .seg button{background:transparent; border-radius:10px}
+  .seg button.active{background:linear-gradient(180deg, #153a57, #0d2a42)}
+
+  #sidebar{ position:fixed; right:16px; top:16px; width:320px; max-height:calc(100% - 32px); overflow:auto; }
+  #sidebar h2{ font-size:12px; opacity:.85; text-transform:uppercase; letter-spacing:.2em; margin:0 0 8px }
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:10px 0}
+  .row label{font-size:12px; color:var(--muted)}
+  .row input[type=range]{width:160px}
+  .row .value{font-weight:700; color:var(--accent)}
+
+  /* Range styling */
+  input[type=range]{height:28px; background:transparent}
+  input[type=range]::-webkit-slider-runnable-track{height:6px;background:#1c3553;border-radius:999px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;margin-top:-6px;height:18px;width:18px;border-radius:999px;background:linear-gradient(180deg,#86efac,#22d3ee);box-shadow:0 0 10px rgba(34,211,238,.5)}
+
+  #canvas{ position:fixed; inset:0; }
+
+  /* Start overlay */
+  #start{
+    position:fixed; inset:0; display:grid; place-items:center; z-index:30; pointer-events:auto;
+    background: radial-gradient(800px 500px at 50% 40%, rgba(34,211,238,.08), transparent),
+                radial-gradient(1200px 800px at 20% 10%, rgba(34,211,238,.05), transparent);
+  }
+  .card{
+    width:min(680px, 92vw); padding:24px; border-radius:20px; border:1px solid rgba(255,255,255,.08);
+    background:linear-gradient(180deg, rgba(5,13,23,.8), rgba(8,20,34,.86));
+    box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06);
+    backdrop-filter: blur(10px);
+  }
+  .title{ display:flex; align-items:center; gap:12px }
+  .title .logo{ width:42px; height:42px; border-radius:12px; background:conic-gradient(from 0deg, #22d3ee, #86efac, #22d3ee); box-shadow:0 0 24px rgba(34,211,238,.4) }
+  .title h1{ margin:0; font-size:24px; letter-spacing:.2em; text-transform:uppercase}
+  .subtitle{ margin:8px 0 16px; color:var(--muted); font-size:14px }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px }
+  .grid .hint{ font-size:12px; color:var(--muted) }
+
+  #toasts{ position:fixed; left:50%; transform:translateX(-50%); bottom:20px; display:flex; flex-direction:column; gap:8px; z-index:40 }
+  .toast{ background:rgba(15,33,54,.9); border:1px solid rgba(255,255,255,.08); padding:10px 12px; border-radius:12px; font-size:12px; }
+
+  canvas{touch-action:none}
+</style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div id="hud">
+    <div class="panel">
+      <div class="brand"><div class="dot"></div><h1>HAVEN — Frog Colony Simulator</h1></div>
+      <div id="stats" style="margin-top:8px">
+        <div class="kv">Food Stored: <b id="foodStored">0</b></div>
+        <div class="kv">Frogs: <b id="frogCount">0</b></div>
+        <div class="kv">Flies in World: <b id="flyCount">0</b></div>
+        <div class="kv">Sim Speed: <b id="speedLabel">1x</b></div>
+      </div>
+      <div id="controls" style="margin-top:8px">
+        <div class="seg">
+          <button id="btnPause">Pause</button>
+          <button id="btnPlay" class="active">Play</button>
+        </div>
+        <div class="seg">
+          <button id="speedDown">–</button>
+          <button id="speed1" class="active">1x</button>
+          <button id="speed2">2x</button>
+          <button id="speed4">4x</button>
+        </div>
+        <button id="spawnFlies">Spawn Flies</button>
+        <button id="addFrog">Add Frog</button>
+        <button id="reset" class="danger">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sidebar" class="panel">
+    <h2>Simulation</h2>
+    <div class="row"><label>Frogs</label><span class="value" id="frogNVal">25</span></div>
+    <div class="row"><input id="frogN" type="range" min="5" max="200" step="1" value="25"/></div>
+
+    <div class="row"><label>Fly spawn rate</label><span class="value" id="spawnVal">1.0x</span></div>
+    <div class="row"><input id="spawnRate" type="range" min="0.25" max="3" step="0.25" value="1"/></div>
+
+    <div class="row"><label>Ripple decay</label><span class="value" id="evapVal">0.995</span></div>
+    <div class="row"><input id="evap" type="range" min="0.98" max="0.999" step="0.001" value="0.995"/></div>
+
+    <div class="row"><label>Show ripples</label>
+      <div class="seg"><button id="ripOn" class="active">On</button><button id="ripOff">Off</button></div>
+    </div>
+    <div class="row"><label>Show paths</label>
+      <div class="seg"><button id="pathOn">On</button><button id="pathOff" class="active">Off</button></div>
+    </div>
+
+    <div class="row"><label>Camera</label><span class="hint">Drag to pan · Wheel to zoom · Double-click to focus</span></div>
+  </div>
+
+  <div id="start">
+    <div class="card">
+      <div class="title"><div class="logo"></div><h1>HAVEN</h1></div>
+      <div class="subtitle">An ant-style foraging simulator… but everyone is a frog on lilypads 🐸. Build up your pond by finding flies and following water “ripples” back home.</div>
+      <div class="grid">
+        <div>
+          <div class="hint">Controls</div>
+          <ul style="margin-top:6px; padding-left:18px; color:var(--text)">
+            <li>Space — Pause/Play</li>
+            <li>Drag — Pan camera</li>
+            <li>Wheel — Zoom</li>
+            <li>R — Spawn flies</li>
+            <li>A — Add frog</li>
+            <li>Dbl‑click — Focus on Haven</li>
+          </ul>
+        </div>
+        <div>
+          <div class="hint">Goals</div>
+          <ul style="margin-top:6px; padding-left:18px; color:var(--text)">
+            <li>Frogs discover flies on lilypads</li>
+            <li>Returning frogs leave ripples (pheromones)</li>
+            <li>Explorers prefer ripple-heavy paths</li>
+            <li>Store food at the Haven pad to grow</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px">
+        <button id="btnStart" class="primary">Start Simulation</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toasts"></div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let W = canvas.width = window.innerWidth;
+  let H = canvas.height = window.innerHeight;
+  window.addEventListener('resize', ()=>{ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; });
+
+  // ------- Camera -------
+  const camera = { x:0, y:0, z:1 };
+  const screenToWorld = (sx, sy)=>({ x:(sx - W/2)/camera.z + camera.x, y:(sy - H/2)/camera.z + camera.y });
+  const worldToScreen = (wx, wy)=>({ x:(wx - camera.x)*camera.z + W/2, y:(wy - camera.y)*camera.z + H/2 });
+
+  // Pan/zoom
+  let isPanning=false, panStart={x:0,y:0}, camStart={x:0,y:0};
+  canvas.addEventListener('pointerdown', (e)=>{ isPanning=true; panStart={x:e.clientX,y:e.clientY}; camStart={x:camera.x,y:camera.y}; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointermove', (e)=>{ if(!isPanning) return; camera.x = camStart.x - (e.clientX - panStart.x)/camera.z; camera.y = camStart.y - (e.clientY - panStart.y)/camera.z; });
+  canvas.addEventListener('pointerup', ()=>{ isPanning=false; });
+  canvas.addEventListener('wheel', (e)=>{ const delta = Math.sign(e.deltaY); const factor = delta>0? 0.9:1.1; const mouse = screenToWorld(e.clientX, e.clientY); camera.z = Math.min(2.5, Math.max(0.35, camera.z*factor)); // zoom
+    // zoom to cursor
+    const after = worldToScreen(mouse.x, mouse.y); camera.x += (mouse.x - screenToWorld(after.x, after.y).x); camera.y += (mouse.y - screenToWorld(after.x, after.y).y);
+  }, {passive:true});
+  canvas.addEventListener('dblclick', ()=>focusHome());
+
+  // ------- World Generation -------
+  const rand = (a,b)=>Math.random()*(b-a)+a;
+  const dist = (a,b)=>Math.hypot(a.x-b.x, a.y-b.y);
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+  const PADS=[], EDGES=[], FLIES=[], FROGS=[];
+  const HOME = { idx:0 };
+  const RIPPLES = new Map(); // key "a-b" (sorted) -> strength
+
+  const SETTINGS = {
+    N_PADS: 48,
+    PAD_R: [22, 42],
+    FROG_SPEED: 60, // px per sec base
+    FROG_COUNT: 25,
+    FLY_SPAWN_RATE: 1, // multiplier
+    EVAP: 0.995, // per tick evaporate multiplier
+    SHOW_RIPPLES: true,
+    SHOW_PATHS: false,
+  };
+
+  // UI bindings
+  const $ = (id)=>document.getElementById(id);
+  const foodStoredEl = $('foodStored');
+  const frogCountEl = $('frogCount');
+  const flyCountEl = $('flyCount');
+  const speedLabelEl = $('speedLabel');
+  const frogNSlider = $('frogN');
+  const frogNVal = $('frogNVal');
+  const spawnRateSlider = $('spawnRate');
+  const spawnVal = $('spawnVal');
+  const evapSlider = $('evap');
+  const evapVal = $('evapVal');
+  const btnRipOn=$('ripOn'), btnRipOff=$('ripOff');
+  const btnPathOn=$('pathOn'), btnPathOff=$('pathOff');
+
+  let SIM = { running:true, speed:1, t:0, dt:0, food:0 };
+
+  function toast(msg, t=2000){
+    const wrap = document.getElementById('toasts');
+    const el = document.createElement('div'); el.className='toast'; el.textContent=msg; wrap.appendChild(el);
+    setTimeout(()=>{ el.style.opacity=0; setTimeout(()=>wrap.removeChild(el), 300); }, t);
+  }
+
+  function resetWorld(){
+    PADS.length=0; EDGES.length=0; FLIES.length=0; FROGS.length=0; RIPPLES.clear(); SIM.food=0; SIM.t=0;
+    // Layout pads in a loose radial cluster
+    const cx=0, cy=0; const R=520;
+    // Home pad first
+    PADS.push({x:cx,y:cy,r:48, home:true, flies:0, neighbors:[]});
+    // Scatter remaining
+    let attempts=0;
+    while(PADS.length < SETTINGS.N_PADS && attempts<5000){
+      attempts++;
+      const ang = rand(0, Math.PI*2);
+      const rad = rand(160, R) + rand(-40,40);
+      const x = cx + Math.cos(ang)*rad + rand(-28,28);
+      const y = cy + Math.sin(ang)*rad + rand(-28,28);
+      const r = rand(SETTINGS.PAD_R[0], SETTINGS.PAD_R[1]);
+      let ok=true; for(const p of PADS){ if(Math.hypot(p.x-x, p.y-y) < (p.r + r + 36)) { ok=false; break; } }
+      if(ok) PADS.push({x,y,r,flies:0,neighbors:[]});
+    }
+    // Connect pads to k nearest neighbors to form a navigable graph
+    for(let i=0;i<PADS.length;i++){
+      const pad = PADS[i]; pad.i=i;
+    }
+    for(let i=0;i<PADS.length;i++){
+      const pad = PADS[i];
+      const others = PADS.map((p,j)=>({j, d: i===j? 1e9 : Math.hypot(p.x-pad.x, p.y-pad.y)})).sort((a,b)=>a.d-b.d);
+      const k = pad.home? 6 : 3+Math.floor(rand(0,2));
+      for(let n=1;n<=k;n++){
+        const j = others[n].j; linkPads(i,j);
+      }
+    }
+    // Build a BFS distance-to-home for gradient navigation
+    computeHomeDistances();
+
+    // Initial flies
+    spawnFlies(18);
+
+    // Initial frogs
+    for(let i=0;i<SETTINGS.FROG_COUNT;i++) FROGS.push(makeFrog());
+
+    focusHome();
+  }
+
+  function linkPads(a,b){ if(a===b) return; const A=PADS[a], B=PADS[b];
+    if(!A.neighbors.includes(b)) A.neighbors.push(b);
+    if(!B.neighbors.includes(a)) B.neighbors.push(a);
+    const key = edgeKey(a,b);
+    if(!EDGES.find(e=> (e.a===a && e.b===b) || (e.a===b && e.b===a))) EDGES.push({a,b,len:Math.hypot(A.x-B.x,A.y-B.y)});
+    if(!RIPPLES.has(key)) RIPPLES.set(key, 0);
+  }
+  function edgeKey(a,b){ return a<b? `${a}-${b}` : `${b}-${a}`; }
+
+  // BFS distances to home
+  let HOME_DIST=[];
+  function computeHomeDistances(){
+    HOME_DIST = new Array(PADS.length).fill(Infinity); HOME_DIST[0]=0; // home at idx 0
+    const q=[0];
+    while(q.length){
+      const i=q.shift();
+      for(const j of PADS[i].neighbors){ if(HOME_DIST[j] > HOME_DIST[i]+1){ HOME_DIST[j]=HOME_DIST[i]+1; q.push(j); } }
+    }
+  }
+
+  function makeFrog(){
+    const pad = PADS[0];
+    return {
+      pad: 0,
+      next: chooseNext(0),
+      t:0, // progress along edge 0..1
+      speed: SETTINGS.FROG_SPEED * (0.8 + Math.random()*0.4),
+      carrying:false,
+      path: [0], // visited pads (for ripple deposit)
+      mood: Math.random()<0.5? 'explore':'wander', // explore = follow ripples, wander=random
+      eye: Math.random()*Math.PI*2,
+    };
+  }
+
+  // Fly spawns on random non-home pads that are somewhat away from home
+  function spawnFlies(n){
+    for(let i=0;i<n;i++){
+      let tries=0; let idx=0;
+      do{ idx = Math.floor(rand(1, PADS.length)); tries++; } while((PADS[idx].flies>3 || HOME_DIST[idx] < 2) && tries<30);
+      PADS[idx].flies = (PADS[idx].flies||0) + 1; FLIES.push({pad:idx});
+    }
+    toast(`Spawned ${n} flies`);
+  }
+
+  // ------- Frog Logic -------
+  function chooseNext(i){
+    const pad = PADS[i];
+    if(pad.neighbors.length===0) return i;
+    // Weighted by ripples (pheromone). Explorers prefer ripple-heavier edges; wanderers random with slight bias
+    const options = pad.neighbors.map(j=>{
+      const key=edgeKey(i,j); const r = RIPPLES.get(key)||0; return {j, w: 1 + r*3};
+    });
+    const sum = options.reduce((s,o)=> s + (o.w), 0);
+    let r = Math.random()*sum; for(const o of options){ r -= o.w; if(r<=0) return o.j; }
+    return options[0].j;
+  }
+
+  function frogStep(f, dt){
+    // If at a pad with flies and not carrying, pick one
+    if(!f.carrying && PADS[f.pad].flies>0){
+      PADS[f.pad].flies--; f.carrying=true; // pick up
+      // start heading home (greedy by home distance)
+      const next = PADS[f.pad].neighbors.sort((a,b)=>HOME_DIST[a]-HOME_DIST[b])[0] ?? f.pad;
+      f.next = next; f.t = 0; f.path = [f.pad];
+    }
+
+    // If at home and carrying, deposit
+    if(f.carrying && f.pad===0){ f.carrying=false; SIM.food++; }
+
+    // If reached target pad -> choose next
+    f.t += (f.speed*SIM.speed*dt)/ edgeLen(f.pad, f.next);
+    if(f.t >= 1){
+      f.t = 0; f.pad = f.next; f.path.push(f.pad);
+      if(f.carrying){
+        // continue toward home greedily
+        if(f.pad!==0){
+          const next = PADS[f.pad].neighbors.reduce((best,j)=> HOME_DIST[j]<HOME_DIST[best]? j:best, PADS[f.pad].neighbors[0]);
+          f.next = next;
+        }
+      } else {
+        // explore: if pad has visible flies, stay (handled at top next tick), else follow ripples-biased choice
+        f.next = chooseNext(f.pad);
+      }
+    }
+
+    // Lay ripples (pheromone) when carrying food (home-trail)
+    if(f.carrying){
+      const key = edgeKey(f.pad, f.next); const cur = RIPPLES.get(key)||0; RIPPLES.set(key, clamp(cur + 0.002, 0, 1.0));
+    }
+  }
+
+  function edgeLen(a,b){
+    const A=PADS[a], B=PADS[b]; return Math.hypot(A.x-B.x, A.y-B.y);
+  }
+
+  // ------- Rendering -------
+  function draw(){
+    // Water background
+    ctx.save();
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = ctx.createLinearGradient(0,0,0,H); ctx.fillStyle.addColorStop(0,'#0b1727'); ctx.fillStyle.addColorStop(1,'#0a1b2e');
+    ctx.fillRect(0,0,W,H);
+
+    // Set camera transform
+    ctx.translate(W/2, H/2); ctx.scale(camera.z, camera.z); ctx.translate(-camera.x, -camera.y);
+
+    // Caustic shimmer
+    const t = SIM.t;
+    ctx.globalAlpha = 0.08; ctx.fillStyle = '#1c3a5e';
+    for(let i=0;i<12;i++){
+      ctx.beginPath(); const r= 900 + i*140 + Math.sin(t*0.2+i)*30; ctx.arc(0,0,r,0,Math.PI*2); ctx.strokeStyle='#123456'; ctx.lineWidth=24; ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    // Paths / edges
+    if(SETTINGS.SHOW_PATHS){
+      ctx.lineWidth=3; ctx.strokeStyle='rgba(200,230,255,.1)';
+      for(const e of EDGES){
+        const A=PADS[e.a], B=PADS[e.b];
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+      }
+    }
+
+    // Ripples (pheromones) along edges
+    if(SETTINGS.SHOW_RIPPLES){
+      for(const e of EDGES){
+        const A=PADS[e.a], B=PADS[e.b]; const key=edgeKey(e.a,e.b); const r=RIPPLES.get(key)||0; if(r<=0.002) continue;
+        ctx.save();
+        ctx.strokeStyle = `rgba(34,211,238,${0.05 + r*0.4})`;
+        ctx.lineWidth = 2 + r*6;
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Lilypads
+    for(const p of PADS){ drawPad(p); }
+
+    // Flies (as tiny sprites hovering above pads)
+    for(const f of FLIES){ const p=PADS[f.pad]; drawFly(p); }
+
+    // Frogs
+    for(const fr of FROGS){ drawFrog(fr); }
+
+    ctx.restore();
+  }
+
+  function drawPad(p){
+    // pad base
+    ctx.save();
+    const grd = ctx.createRadialGradient(p.x-10,p.y-10,p.r*0.2, p.x,p.y,p.r*1.15);
+    grd.addColorStop(0, '#1f6f4e'); grd.addColorStop(1, '#104432');
+    ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+    // veins
+    ctx.strokeStyle='rgba(255,255,255,.05)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(p.x,p.y,p.r*0.7, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='rgba(0,0,0,.18)'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(p.x,p.y,p.r, -0.6, 0.6); ctx.stroke();
+    // Haven ring
+    if(p.home){ ctx.strokeStyle='rgba(200,255,230,.5)'; ctx.lineWidth=4; ctx.beginPath(); ctx.arc(p.x,p.y,p.r+6,0,Math.PI*2); ctx.stroke(); }
+    // flies count pips
+    if(p.flies>0){ ctx.fillStyle='rgba(255,255,255,.35)'; for(let i=0;i<p.flies;i++){ ctx.beginPath(); ctx.arc(p.x + (i*6- (p.flies-1)*3), p.y - p.r*0.5, 2.5, 0, Math.PI*2); ctx.fill(); } }
+    ctx.restore();
+  }
+
+  function drawFly(p){
+    const wob = Math.sin(SIM.t*4 + p.x*0.01 + p.y*0.01)*2;
+    const x = p.x + wob*0.3, y = p.y - p.r*0.55 + wob;
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.scale(0.9,0.9);
+    // wings
+    ctx.globalAlpha=0.8; ctx.fillStyle='rgba(200,240,255,0.6)';
+    ctx.beginPath(); ctx.ellipse(-3,-3,5,3, -0.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(3,-3,5,3, 0.5, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // body
+    ctx.fillStyle='#2b2b30'; ctx.beginPath(); ctx.ellipse(0,0,4,3, 0, 0, Math.PI*2); ctx.fill();
+    // head
+    ctx.fillStyle='#1a1a1e'; ctx.beginPath(); ctx.arc(0,-2, 2.2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawFrog(fr){
+    // Interpolate position along edge fr.pad -> fr.next
+    const A=PADS[fr.pad], B=PADS[fr.next];
+    const x = A.x + (B.x - A.x)*fr.t;
+    const y = A.y + (B.y - A.y)*fr.t;
+    const ang = Math.atan2(B.y - A.y, B.x - A.x);
+
+    ctx.save();
+    ctx.translate(x,y); ctx.rotate(ang);
+    const scale = clamp(0.8 + Math.sin(SIM.t*4 + fr.eye)*0.05, .7, 1.05);
+    ctx.scale(scale, scale);
+    // shadow
+    ctx.fillStyle='rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(0,10,10,4,0,0,Math.PI*2); ctx.fill();
+
+    // body
+    ctx.fillStyle= fr.carrying? '#39a96b' : '#3fbf7f';
+    ctx.beginPath(); ctx.ellipse(0,0, 12, 10, 0, 0, Math.PI*2); ctx.fill();
+    // head
+    ctx.beginPath(); ctx.ellipse(10,-4, 10, 8, 0, 0, Math.PI*2); ctx.fill();
+    // eyes
+    ctx.fillStyle='#f0f9ff'; ctx.beginPath(); ctx.arc(13,-10, 3.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-10, 3.3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#0b1324'; ctx.beginPath(); ctx.arc(13,-10, 1.6, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(6,-10, 1.6, 0, Math.PI*2); ctx.fill();
+
+    // carried fly icon
+    if(fr.carrying){
+      ctx.save(); ctx.translate(4, 0); ctx.rotate(0.2);
+      ctx.fillStyle='#2b2b30'; ctx.beginPath(); ctx.ellipse(0,0,3,2.5,0,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+  // ------- Game Loop -------
+  let last=performance.now();
+  function loop(now){
+    const dt = Math.min(0.05, (now-last)/1000); last=now; SIM.dt = dt; SIM.t += dt*SIM.speed;
+    if(SIM.running){
+      // Evaporate ripples
+      for(const [k,v] of RIPPLES){ RIPPLES.set(k, v*SETTINGS.EVAP); }
+      // Spawn flies over time
+      if(Math.random() < 0.008 * SETTINGS.FLY_SPAWN_RATE * SIM.speed){ spawnFlies(1); }
+      // Frog updates
+      for(const f of FROGS) frogStep(f, dt);
+      // Keep FLIES array in sync with pad counts (for rendering hovery flies)
+      FLIES.length=0; for(const p of PADS){ for(let i=0;i<p.flies;i++) FLIES.push({pad:p.i}); }
+    }
+    draw();
+    // HUD
+    foodStoredEl.textContent = SIM.food;
+    frogCountEl.textContent = FROGS.length;
+    flyCountEl.textContent = FLIES.length;
+    speedLabelEl.textContent = `${SIM.speed.toFixed(0)}x`;
+
+    requestAnimationFrame(loop);
+  }
+
+  // ------- Focus helpers -------
+  function focusHome(){ camera.x=PADS[0].x; camera.y=PADS[0].y; camera.z=1.1; }
+
+  // ------- Input/UI wiring -------
+  document.addEventListener('keydown', (e)=>{
+    if(e.code==='Space'){ e.preventDefault(); togglePause(); }
+    else if(e.key==='r' || e.key==='R'){ spawnFlies(8); }
+    else if(e.key==='a' || e.key==='A'){ addFrog(); }
+  });
+
+  function togglePause(){ SIM.running = !SIM.running; updatePlaySeg(); toast(SIM.running? 'Resumed' : 'Paused'); }
+  function updatePlaySeg(){
+    document.getElementById('btnPlay').classList.toggle('active', SIM.running);
+    document.getElementById('btnPause').classList.toggle('active', !SIM.running);
+  }
+  $('btnPlay').onclick=()=>{ SIM.running=true; updatePlaySeg(); };
+  $('btnPause').onclick=()=>{ SIM.running=false; updatePlaySeg(); };
+
+  $('speedDown').onclick=()=>{ setSpeed(Math.max(1, SIM.speed/2)); };
+  $('speed1').onclick=()=>setSpeed(1);
+  $('speed2').onclick=()=>setSpeed(2);
+  $('speed4').onclick=()=>setSpeed(4);
+  function setSpeed(s){ SIM.speed = s; for(const id of ['speed1','speed2','speed4']) $(id).classList.remove('active'); $(`speed${s}`).classList.add('active'); }
+
+  $('spawnFlies').onclick=()=>spawnFlies(12);
+  $('addFrog').onclick=()=>addFrog();
+  $('reset').onclick=()=>{ resetWorld(); toast('World reset'); };
+
+  function addFrog(){ if(FROGS.length>=220) return toast('Max frogs reached'); FROGS.push(makeFrog()); frogNSlider.value=FROGS.length; frogNVal.textContent=FROGS.length; }
+
+  frogNSlider.oninput = ()=>{ frogNVal.textContent = frogNSlider.value; const target = +frogNSlider.value; if(target>FROGS.length){ for(let i=FROGS.length;i<target;i++) FROGS.push(makeFrog()); } else { FROGS.length=target; } };
+  spawnRateSlider.oninput = ()=>{ SETTINGS.FLY_SPAWN_RATE = +spawnRateSlider.value; spawnVal.textContent = `${spawnRateSlider.value}x`; };
+  evapSlider.oninput = ()=>{ SETTINGS.EVAP = +evapSlider.value; evapVal.textContent = SETTINGS.EVAP.toFixed(3); };
+
+  btnRipOn.onclick=()=>{ SETTINGS.SHOW_RIPPLES=true; btnRipOn.classList.add('active'); btnRipOff.classList.remove('active'); };
+  btnRipOff.onclick=()=>{ SETTINGS.SHOW_RIPPLES=false; btnRipOn.classList.remove('active'); btnRipOff.classList.add('active'); };
+
+  btnPathOn.onclick=()=>{ SETTINGS.SHOW_PATHS=true; btnPathOn.classList.add('active'); btnPathOff.classList.remove('active'); };
+  btnPathOff.onclick=()=>{ SETTINGS.SHOW_PATHS=false; btnPathOn.classList.remove('active'); btnPathOff.classList.add('active'); };
+
+  // Start overlay
+  $('btnStart').onclick=()=>{ document.getElementById('start').style.display='none'; SIM.running=true; toast('Welcome to HAVEN'); };
+
+  // Boot
+  resetWorld();
+  SIM.running=false; // wait at start screen
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
